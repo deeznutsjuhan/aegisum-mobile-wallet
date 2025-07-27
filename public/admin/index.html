@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegisum Wallet Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/admin.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Modal -->
+        <div class="modal fade" id="loginModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Admin Login
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <div class="mb-3" id="twoFactorGroup" style="display: none;">
+                                <label for="twoFactorCode" class="form-label">2FA Code</label>
+                                <input type="text" class="form-control" id="twoFactorCode" maxlength="6" pattern="[0-9]{6}">
+                                <div class="form-text">Enter the 6-digit code from your authenticator app</div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    Login
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" style="display: none;">
+            <!-- Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <i class="fas fa-wallet me-2"></i>
+                        Aegisum Admin
+                    </a>
+                    <div class="navbar-nav ms-auto">
+                        <span class="navbar-text me-3">
+                            Welcome, <span id="adminUsername"></span>
+                        </span>
+                        <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Sidebar and Content -->
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- Sidebar -->
+                    <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                        <div class="position-sticky pt-3">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#" onclick="showSection('dashboard-stats')">
+                                        <i class="fas fa-tachometer-alt me-2"></i>
+                                        Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="showSection('users')">
+                                        <i class="fas fa-users me-2"></i>
+                                        Users
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="showSection('blocked-entities')">
+                                        <i class="fas fa-ban me-2"></i>
+                                        Blocked Entities
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="showSection('transactions')">
+                                        <i class="fas fa-exchange-alt me-2"></i>
+                                        Transactions
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="showSection('fee-settings')">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Fee Settings
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="showSection('suspicious-activity')">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Security
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+
+                    <!-- Main Content -->
+                    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                        <!-- Dashboard Stats Section -->
+                        <div id="dashboard-stats" class="content-section">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">Dashboard</h1>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="loadDashboardStats()">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Refresh
+                                </button>
+                            </div>
+
+                            <!-- Stats Cards -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card text-white bg-primary">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <h4 id="totalUsers">-</h4>
+                                                    <p class="card-text">Total Users</p>
+                                                </div>
+                                                <i class="fas fa-users fa-2x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-white bg-success">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <h4 id="totalWallets">-</h4>
+                                                    <p class="card-text">Total Wallets</p>
+                                                </div>
+                                                <i class="fas fa-wallet fa-2x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-white bg-info">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <h4 id="totalTransactions">-</h4>
+                                                    <p class="card-text">Transactions</p>
+                                                </div>
+                                                <i class="fas fa-exchange-alt fa-2x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-white bg-warning">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <h4 id="blockedEntities">-</h4>
+                                                    <p class="card-text">Blocked</p>
+                                                </div>
+                                                <i class="fas fa-ban fa-2x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Activity -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Recent Users</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="recentUsers">Loading...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Recent Transactions</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="recentTransactions">Loading...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Users Section -->
+                        <div id="users" class="content-section" style="display: none;">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">User Management</h1>
+                                <div class="btn-toolbar mb-2 mb-md-0">
+                                    <div class="btn-group me-2">
+                                        <input type="text" class="form-control" id="userSearch" placeholder="Search users...">
+                                        <button class="btn btn-outline-secondary" onclick="searchUsers()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="usersTable">Loading...</div>
+                        </div>
+
+                        <!-- Blocked Entities Section -->
+                        <div id="blocked-entities" class="content-section" style="display: none;">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">Blocked Entities</h1>
+                                <button class="btn btn-primary" onclick="showBlockEntityModal()">
+                                    <i class="fas fa-ban me-1"></i>
+                                    Block Entity
+                                </button>
+                            </div>
+                            <div id="blockedEntitiesTable">Loading...</div>
+                        </div>
+
+                        <!-- Transactions Section -->
+                        <div id="transactions" class="content-section" style="display: none;">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">Transaction Logs</h1>
+                                <div class="btn-toolbar mb-2 mb-md-0">
+                                    <select class="form-select me-2" id="transactionStatusFilter">
+                                        <option value="">All Status</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="failed">Failed</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" onclick="loadTransactions()">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="transactionsTable">Loading...</div>
+                        </div>
+
+                        <!-- Fee Settings Section -->
+                        <div id="fee-settings" class="content-section" style="display: none;">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">Fee Settings</h1>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Withdrawal Fee Configuration</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <form id="feeSettingsForm">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Fee Type</label>
+                                                    <div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio" name="feeType" id="flatFee" value="flat">
+                                                            <label class="form-check-label" for="flatFee">Flat Amount</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio" name="feeType" id="percentageFee" value="percentage">
+                                                            <label class="form-check-label" for="percentageFee">Percentage</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="feeAmount" class="form-label">Fee Amount</label>
+                                                    <input type="number" class="form-control" id="feeAmount" step="0.00000001" required>
+                                                    <div class="form-text" id="feeAmountHelp">Enter amount in AEGS for flat fee or percentage for percentage fee</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="feeAddress" class="form-label">Fee Collection Address</label>
+                                                    <input type="text" class="form-control" id="feeAddress" required>
+                                                    <div class="form-text">Address where withdrawal fees will be sent</div>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save me-1"></i>
+                                                    Update Fee Settings
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Suspicious Activity Section -->
+                        <div id="suspicious-activity" class="content-section" style="display: none;">
+                            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                                <h1 class="h2">Security & Suspicious Activity</h1>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="loadSuspiciousActivity()">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Refresh
+                                </button>
+                            </div>
+                            <div id="suspiciousActivityContent">Loading...</div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <!-- Block Entity Modal -->
+        <div class="modal fade" id="blockEntityModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Block Entity</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="blockEntityForm">
+                            <div class="mb-3">
+                                <label class="form-label">Entity Type</label>
+                                <select class="form-select" id="blockEntityType" required>
+                                    <option value="">Select type...</option>
+                                    <option value="username">Username</option>
+                                    <option value="email">Email</option>
+                                    <option value="ip">IP Address</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="blockEntityValue" class="form-label">Value</label>
+                                <input type="text" class="form-control" id="blockEntityValue" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="blockEntityReason" class="form-label">Reason (Optional)</label>
+                                <textarea class="form-control" id="blockEntityReason" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="blockEntity()">Block Entity</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="text-center" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Wait for Bootstrap to load before loading admin.js
+        window.addEventListener('load', function() {
+            const script = document.createElement('script');
+            script.src = '/js/admin.js';
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>

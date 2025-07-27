@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegisum Wallet Admin Dashboard - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .dashboard {
+            display: none;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aegisum Wallet Admin Dashboard</h1>
+        
+        <!-- Login Form -->
+        <div id="loginSection" class="login-form">
+            <h2>Admin Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <div id="loginMessage"></div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboardSection" class="dashboard">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Dashboard</h2>
+                <button onclick="logout()">Logout</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalUsers">-</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalWallets">-</div>
+                    <div class="stat-label">Total Wallets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="blockedEntities">-</div>
+                    <div class="stat-label">Blocked Entities</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="rpcStatus">-</div>
+                    <div class="stat-label">RPC Status</div>
+                </div>
+            </div>
+
+            <h3>System Information</h3>
+            <div id="systemInfo">
+                <p><strong>Backend Status:</strong> <span id="backendStatus">Loading...</span></p>
+                <p><strong>RPC Connection:</strong> <span id="rpcConnection">Loading...</span></p>
+                <p><strong>Last Updated:</strong> <span id="lastUpdated">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('adminToken');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                showDashboard();
+                loadDashboardData();
+            } else {
+                showLogin();
+            }
+        });
+
+        // Show login form
+        function showLogin() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('dashboardSection').style.display = 'none';
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+        }
+
+        // Handle login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('loginMessage');
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    messageDiv.innerHTML = '<div class="success">Login successful!</div>';
+                    setTimeout(() => {
+                        showDashboard();
+                        loadDashboardData();
+                    }, 1000);
+                } else {
+                    messageDiv.innerHTML = '<div class="error">Login failed: ' + data.message + '</div>';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = '<div class="error">Login error: ' + error.message + '</div>';
+            }
+        });
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load health status
+                const healthResponse = await fetch('/api/health');
+                const healthData = await healthResponse.json();
+                
+                document.getElementById('backendStatus').textContent = healthData.success ? 'Online' : 'Offline';
+                document.getElementById('rpcConnection').textContent = healthData.data.rpc.status;
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                
+                // Load dashboard stats
+                const statsResponse = await fetch('/api/admin/dashboard/stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+                
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    if (statsData.success) {
+                        document.getElementById('totalUsers').textContent = statsData.data.totalUsers || 0;
+                        document.getElementById('totalWallets').textContent = statsData.data.totalWallets || 0;
+                        document.getElementById('blockedEntities').textContent = statsData.data.blockedEntities || 0;
+                        document.getElementById('rpcStatus').textContent = statsData.data.rpcStatus || 'Unknown';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('adminToken');
+            authToken = null;
+            showLogin();
+            document.getElementById('loginMessage').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
